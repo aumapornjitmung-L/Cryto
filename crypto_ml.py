@@ -20,7 +20,13 @@ try:
 except Exception:  # xgboost ไม่ได้ติดตั้ง -> ข้ามโมเดลนี้
     XGBClassifier = XGBRegressor = None
 
-DEFAULT_SYMBOLS = ["QUSDT", "BRUSDT", "AGTUSDT"]
+DEFAULT_SYMBOLS = ["QUSDT", "BRUSDT", "AGTUSDT", "PHAUSDT"]  # Binance USDT-M Futures (Perpetual)
+SYMBOL_INFO = {
+    "QUSDT": "Quack AI (Q) — เปิดเทรดบน Binance Futures 2 ก.ย. 2025",
+    "BRUSDT": "เปิดเทรดบน Binance Futures 21 มี.ค. 2025",
+    "AGTUSDT": "Alaya AI (AGT) — Binance Futures",
+    "PHAUSDT": "Phala Network (PHA) — เปิดเทรดบน Binance Futures 30 ธ.ค. 2024",
+}
 INTERVAL_MIN = {"15m": 15, "1h": 60, "4h": 240, "1d": 1440}
 BYBIT_IV = {"15m": "15", "1h": "60", "4h": "240", "1d": "D"}
 HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -121,15 +127,16 @@ def load_csv(src) -> pd.DataFrame:
 
 
 def fetch_klines(symbol: str, interval: str = "4h", total: int = 1500,
-                 snapshot_dir: str | Path | None = None) -> tuple[pd.DataFrame, str]:
-    """ลองดึงจาก Binance Futures -> Binance Spot mirror -> Bybit -> ไฟล์ snapshot (data/SYMBOL_interval.csv)
+                 snapshot_dir: str | Path | None = None,
+                 allow_fallback: bool = False) -> tuple[pd.DataFrame, str]:
+    """ดึงแท่งเทียนจาก Binance USDT-M Futures เป็นหลัก
+    ถ้าไม่ได้ -> (ถ้า allow_fallback) Bybit Linear -> ไฟล์ snapshot data/SYMBOL_interval.csv
     คืนค่า (DataFrame, ชื่อแหล่งข้อมูล)"""
     symbol = symbol.upper().strip()
-    sources = [
-        ("Binance USDT-M Futures", lambda: _binance_like("https://fapi.binance.com", "/fapi/v1/klines", symbol, interval, total)),
-        ("Binance Spot (data-api)", lambda: _binance_like("https://data-api.binance.vision", "/api/v3/klines", symbol, interval, total)),
-        ("Bybit Linear", lambda: _bybit(symbol, interval, total)),
-    ]
+    sources = [("Binance USDT-M Futures",
+                lambda: _binance_like("https://fapi.binance.com", "/fapi/v1/klines", symbol, interval, total))]
+    if allow_fallback:  # ราคาอาจต่างจาก Binance เล็กน้อย จึงไม่เปิดเป็นค่าเริ่มต้น
+        sources.append(("Bybit Linear (สำรอง)", lambda: _bybit(symbol, interval, total)))
     errors = []
     for name, fn in sources:
         try:
@@ -274,14 +281,14 @@ def forecast(df: pd.DataFrame, model_names: list[str], horizon: int = 1, evaluat
 
 
 def benchmark(symbols, interval="4h", horizon=1, total=1500, names=None, snapshot_dir="data",
-              save_snapshots=True):
+              save_snapshots=True, allow_fallback=False):
     """เทียบโมเดลทุกตัวบนทุกเหรียญ คืน (ตารางละเอียด, ตารางสรุปเรียงตาม AUC เฉลี่ย)"""
     names = names or available_models()
     snapshot_dir = Path(snapshot_dir)
     rows = []
     for s in symbols:
         try:
-            df, src = fetch_klines(s, interval, total, snapshot_dir)
+            df, src = fetch_klines(s, interval, total, snapshot_dir, allow_fallback)
         except DataError as e:
             print(f"[ข้าม] {s}: {e}")
             continue

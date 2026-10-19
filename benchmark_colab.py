@@ -3,13 +3,13 @@
 #  แล้วเลือกเฉพาะ "2 โมเดลที่ดีที่สุด" เขียนลง model_config.json ให้แอป Streamlit ใช้
 #
 #  เตรียมใน Colab:  1) อัปโหลด crypto_ml.py   2) !pip -q install xgboost
-#  หมายเหตุ: Colab ใช้ IP ของสหรัฐฯ ซึ่ง Binance/Bybit อาจบล็อก ถ้าดึงไม่ได้ให้ดาวน์โหลดแท่งเทียนจาก
-#  ที่อื่นแล้วอัปโหลดเป็นไฟล์ data/<SYMBOL>_<interval>.csv (คอลัมน์ time,open,high,low,close,volume)
+#  หมายเหตุ: Colab ใช้ IP ของสหรัฐฯ ซึ่ง Binance อาจบล็อก (HTTP 451) ถ้าดึงไม่ได้ให้รัน update_data.py
+#  บนเครื่องของคุณก่อน แล้วอัปโหลดโฟลเดอร์ data/ (ไฟล์ <SYMBOL>_<interval>.csv) ขึ้น Colab
 # =====================================================================
 import json
 from crypto_ml import benchmark, DEFAULT_SYMBOLS, MODEL_LABELS
 
-SYMBOLS = DEFAULT_SYMBOLS      # ["QUSDT", "BRUSDT", "AGTUSDT"]
+SYMBOLS = DEFAULT_SYMBOLS      # ["QUSDT", "BRUSDT", "AGTUSDT", "PHAUSDT"]
 INTERVAL = "4h"                # 15m / 1h / 4h / 1d
 HORIZON = 1                    # พยากรณ์ล่วงหน้ากี่แท่ง
 TOTAL = 1500                   # จำนวนแท่งที่ดึง
